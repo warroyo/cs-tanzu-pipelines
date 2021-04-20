@@ -19,13 +19,13 @@ spec:
           - 198.51.100.0/12
       storage:
         classes:
-        - k8s-policy
-        defaultClass: "k8s-policy"
+        - k8s-storage-policy
+        defaultClass: "k8s-storage-policy"
     topology:
       controlPlane:
         class: best-effort-medium
         highAvailability: false
-        storageClass: k8s-policy
+        storageClass: k8s-storage-policy
       nodePools:
       - info:
           description: default description for the nodepool
@@ -33,8 +33,8 @@ spec:
         spec:
           tkgServiceVsphere:
             class: best-effort-medium
-            storageClass: k8s-policy
-          workerNodeCount: "1"
+            storageClass: k8s-storage-policy
+          workerNodeCount: "2"
 type:
   kind: Cluster
   package: vmware.tanzu.manage.v1alpha1.cluster
