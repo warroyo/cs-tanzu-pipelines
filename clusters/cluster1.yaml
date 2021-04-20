@@ -1,6 +1,6 @@
 fullName:
   managementClusterName: "seti-labs"
-  name: cluster-gitops-1
+  name: cluster-gitops-2
   provisionerName: "setilabs-dev-ns"
 meta:
   labels: null
