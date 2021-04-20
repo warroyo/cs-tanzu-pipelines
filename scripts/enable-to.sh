@@ -10,7 +10,7 @@ export WAVEFRONT_TOKEN=$2
 cat << EOF > TO.json
 {
     "full_name": {
-        "provisionerName": "${PROVISONER}",
+        "provisionerName": "${PROVISIONER}",
         "managementClusterName": "${MGMT_CLUSTER}",
         "clusterName": "${CLUSTER_NAME}",
         "name": "tanzu-observability-saas"
