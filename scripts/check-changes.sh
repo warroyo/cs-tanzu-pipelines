@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export changedYaml=$(git diff --name-only HEAD^ HEAD)
-echo "$changedYaml has changes"
+export CLUSTER_YAML=$(git diff --name-only HEAD^ HEAD)
+echo "$CLUSTER_YAML has changes"
 
 
