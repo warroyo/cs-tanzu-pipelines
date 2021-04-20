@@ -1,9 +1,6 @@
 #!/bin/bash
 
 export changedYaml=$(git diff --name-only HEAD^ HEAD)
-echo $changedYaml
+echo "$changedYaml has changes"
 
-if [[ "${changedYaml}" != *"clusters"* ]]; then
-echo "no relevant changes"
-exit 1
-fi
+
