@@ -34,7 +34,7 @@ spec:
           tkgServiceVsphere:
             class: best-effort-medium
             storageClass: k8s-policy
-          workerNodeCount: "1"
+          workerNodeCount: "2"
 type:
   kind: Cluster
   package: vmware.tanzu.manage.v1alpha1.cluster
