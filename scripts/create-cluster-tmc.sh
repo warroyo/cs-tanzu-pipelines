@@ -4,7 +4,6 @@ export TMC_API_TOKEN=$1
 tmc login --no-configure --name cs-gitops
 
 
-
 RESULT=$(tmc cluster create -f $CLUSTER_YAML 2>&1)
 CREATE_ERROR=$?
 
