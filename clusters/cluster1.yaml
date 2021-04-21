@@ -1,5 +1,5 @@
 fullName:
-  managementClusterName: "seti-labs"
+  managementClusterName: "seti-labs" #test
   name: cluster-gitops-2
   provisionerName: "setilabs-dev-ns"
 meta:
