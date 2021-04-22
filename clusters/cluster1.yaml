@@ -38,4 +38,4 @@ spec:
           tkgServiceVsphere:
             class: best-effort-medium
             storageClass: k8s-storage-policy
-          workerNodeCount: "1" #test
+          workerNodeCount: "1" #test2
