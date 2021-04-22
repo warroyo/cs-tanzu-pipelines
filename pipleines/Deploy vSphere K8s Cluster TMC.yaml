@@ -1,0 +1,241 @@
+---
+project: SETI-Labs RD
+kind: PIPELINE
+name: Deploy vSphere K8s Cluster TMC
+icon: organization,left, is-info is-solid
+enabled: true
+description: Deploys a Tanzu cluster in a supervisor namespace
+concurrency: 10
+options: [
+  GIT_TRIGGER]
+input:
+  GIT_BRANCH_NAME: ''
+  GIT_CHANGE_SUBJECT: ''
+  GIT_COMMIT_ID: ''
+  GIT_EVENT_DESCRIPTION: ''
+  GIT_EVENT_OWNER_NAME: ''
+  GIT_EVENT_TIMESTAMP: ''
+  GIT_REPO_NAME: ''
+  GIT_SERVER_URL: ''
+_inputMeta:
+  GIT_SERVER_URL:
+    mandatory: false
+    description: ''
+  GIT_BRANCH_NAME:
+    mandatory: false
+    description: ''
+  GIT_COMMIT_ID:
+    mandatory: false
+    description: ''
+  GIT_EVENT_TIMESTAMP:
+    mandatory: false
+    description: ''
+  GIT_EVENT_DESCRIPTION:
+    mandatory: false
+    description: ''
+  GIT_REPO_NAME:
+    mandatory: false
+    description: ''
+  GIT_EVENT_OWNER_NAME:
+    mandatory: false
+    description: ''
+  GIT_CHANGE_SUBJECT:
+    mandatory: false
+    description: ''
+workspace:
+  endpoint: SETI-Labs Docker Host
+  image: harbor-repo.vmware.com/dockerhub-proxy-cache/warroyo90/k8s-ci-container:1.0.1
+  registry: ''
+  path: ''
+  autoCloneForTrigger: true
+  limits:
+    cpu: 1.0
+    memory: 512
+stageOrder:
+- Create Tanzu K8s Cluster
+- Configure TKC
+- VRA Integration
+stages:
+  Create Tanzu K8s Cluster:
+    taskOrder:
+    - check for changed file
+    - Create Tanzu Cluster
+    - Checking for Cluster Completion
+    - enable TO
+    tasks:
+      enable TO:
+        type: CI
+        input:
+          steps:
+          - cd cs-tanzu-pipelines/scripts
+          - export CLUSTER_NAME=${Create Tanzu K8s Cluster.Checking for Cluster Completion.output.exports.CLUSTER_NAME}
+          - export MGMT_CLUSTER=${Create Tanzu K8s Cluster.Checking for Cluster Completion.output.exports.MGMT_CLUSTER}
+          - export PROVISIONER=${Create Tanzu K8s Cluster.Checking for Cluster Completion.output.exports.PROVISIONER}
+          - ''
+          - ''
+          - ./enable-to.sh ${var.tmc_password} ${var.wavefront_token}
+          export: [
+            ]
+          artifacts: [
+            ]
+          process: [
+            ]
+      check for changed file:
+        type: CI
+        input:
+          steps:
+          - cd cs-tanzu-pipelines
+          - ''
+          - . ./scripts/check-changes.sh
+          export:
+          - CLUSTER_YAML
+          artifacts: [
+            ]
+          process: [
+            ]
+      Create Tanzu Cluster:
+        type: CI
+        input:
+          steps:
+          - cd cs-tanzu-pipelines
+          - ''
+          - export CLUSTER_YAML=${Create Tanzu K8s Cluster.check for changed file.output.exports.CLUSTER_YAML}
+          - echo $CLUSTER_YAML
+          - . ./scripts/env.sh
+          - ''
+          - ./scripts/create-cluster-tmc.sh  ${var.tmc_password}
+          - ''
+          - ''
+          export: [
+            ]
+          artifacts: [
+            ]
+          process: [
+            ]
+      Checking for Cluster Completion:
+        type: CI
+        input:
+          steps:
+          - cd cs-tanzu-pipelines
+          - ''
+          - export CLUSTER_YAML=${Create Tanzu K8s Cluster.check for changed file.output.exports.CLUSTER_YAML}
+          - ''
+          - . ./scripts/env.sh
+          - ./scripts/wait-for-cluster.sh
+          export:
+          - CLUSTER_NAME
+          - MGMT_CLUSTER
+          - PROVISIONER
+          artifacts: [
+            ]
+          process: [
+            ]
+  Configure TKC:
+    taskOrder:
+    - create RBAC
+    tasks:
+      create RBAC:
+        type: CI
+        input:
+          steps:
+          - cd cs-tanzu-pipelines
+          - export CLUSTER_NAME=${Create Tanzu K8s Cluster.Checking for Cluster Completion.output.exports.CLUSTER_NAME}
+          - export MGMT_CLUSTER=${Create Tanzu K8s Cluster.Checking for Cluster Completion.output.exports.MGMT_CLUSTER}
+          - export PROVISIONER=${Create Tanzu K8s Cluster.Checking for Cluster Completion.output.exports.PROVISIONER}
+          - export TMC_API_TOKEN=${var.tmc_password}
+          - . ./scripts/login-tkc.sh
+          - ./scripts/create-rbac.sh
+          export: [
+            ]
+          artifacts: [
+            ]
+          process: [
+            ]
+  VRA Integration:
+    taskOrder:
+    - get-cluster-info
+    - get-api-token
+    - Create Code Stream K8s Endpoint
+    tasks:
+      Create Code Stream K8s Endpoint:
+        type: REST
+        input:
+          action: post
+          url: https://api.mgmt.cloud.vmware.com/pipeline/api/endpoints
+          headers:
+            Accept: application/json
+            Content-Type: application/json
+            Authorization: Bearer ${VRA Integration.get-api-token.output.responseBody.access_token}
+          payload: |
+            {
+              "project": "SETI-Labs RD" ,
+              "kind": "ENDPOINT",
+              "name": "${Create Tanzu K8s Cluster.Checking for Cluster Completion.output.exports.CLUSTER_NAME}",
+              "description": "Cluster Created From Pipeline",
+              "tags": [],
+              "type": "k8s",
+              "isRestricted": "false",
+              "cloudProxyId": "bd625c55-7dd5-4fb2-b73c-09d18f52f223",
+              "properties": {
+                "kubernetesURL": "${VRA Integration.get-cluster-info.output.exports.APISERVER}",
+                "authType": "token",
+                "token": "${VRA Integration.get-cluster-info.output.exports.TOKEN}",
+                "fingerprint": "${VRA Integration.get-cluster-info.output.exports.FINGERPRINT}"
+              }
+            }
+      get-api-token:
+        type: REST
+        input:
+          action: post
+          url: https://console.cloud.vmware.com/csp/gateway/am/api/auth/api-tokens/authorize?refresh_token=${var.codestream_token}
+          headers:
+            Accept: application/json
+            Content-Type: application/json
+          payload: ''
+      get-cluster-info:
+        type: CI
+        input:
+          steps:
+          - cd cs-tanzu-pipelines
+          - export CLUSTER_NAME=${Create Tanzu K8s Cluster.Checking for Cluster Completion.output.exports.CLUSTER_NAME}
+          - export MGMT_CLUSTER=${Create Tanzu K8s Cluster.Checking for Cluster Completion.output.exports.MGMT_CLUSTER}
+          - export PROVISIONER=${Create Tanzu K8s Cluster.Checking for Cluster Completion.output.exports.PROVISIONER}
+          - export TMC_API_TOKEN=${var.tmc_password}
+          - . ./scripts/login-tkc.sh
+          - ''
+          - export APISERVER=$(kubectl config view --minify | grep server | cut -f 2- -d ":" | tr -d "
+            ")
+          - APISERVERNOHTTPS=$(echo $APISERVER | cut -c 9-)
+          - FPRINT=$(openssl s_client -connect $APISERVERNOHTTPS < /dev/null 2>/dev/null | openssl x509
+            -fingerprint -sha256 -noout -in /dev/stdin)
+          - export FINGERPRINT=$(echo $FPRINT | cut -c 20-)
+          - TOKENNAME=$(kubectl -n kube-system get serviceaccount/dev-admin -o jsonpath='{.secrets[0].name}')
+          - export TOKEN=$(kubectl -n kube-system get secret $TOKENNAME -o jsonpath='{.data.token}'| base64
+            --decode)
+          - ''
+          - ''
+          export:
+          - APISERVER
+          - FINGERPRINT
+          - TOKEN
+          artifacts: [
+            ]
+          process: [
+            ]
+notifications:
+  email:
+  - endpoint: Codestream-Default-Email
+    event: SUCCESS
+    body: |-
+      <html>
+      <body>
+      <p class=MsoNormal><b><span style='font-size:14.0pt'>Cluster Information:<o:p></o:p></span></b></p>
+      <p class=MsoNormal><span style='font-size:14.0pt'>Cluster Service Account: dev-admin<o:p></o:p></span></p>
+      <p class=MsoNormal><span style='font-size:14.0pt'>Cluster Address: ${Integration-to-vRA.Collect-Cluster-Information.output.exports.APISERVER}<o:p></o:p></span></p>
+      <p class=MsoNormal><span style='font-size:14.0pt'>Cluster Token: ${Integration-to-vRA.Collect-Cluster-Information.output.exports.TOKEN}<o:p></o:p></span></p>
+      <p class=MsoNormal><span style='font-size:14.0pt'>Cluster Fingerprint: ${Integration-to-vRA.Collect-Cluster-Information.output.exports.FINGERPRINT}<o:p></o:p></span></p>
+      </body>
+      </html>
+    subject: TKG Cluster Deployment Complete
+    to:
+    - ${requestBy}
