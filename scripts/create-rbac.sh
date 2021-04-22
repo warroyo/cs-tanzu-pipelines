@@ -1,4 +1,4 @@
 
 #!/bin/bash
 
-kubectl apply -f tkc-sa.yml
+kubectl apply -f scripts/tkc-sa.yml
