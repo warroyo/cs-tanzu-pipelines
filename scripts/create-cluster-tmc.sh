@@ -9,7 +9,8 @@ CREATE_ERROR=$?
 
 if [ $CREATE_ERROR -eq 1 ] && [[ "${RESULT}" == *"AlreadyExists"* ]]; then
 echo "cluster exists updating..."
-tmc cluster update $CLUSTER_NAME -f $CLUSTER_YAML
+#commenting out for now
+#tmc cluster update $CLUSTER_NAME -f $CLUSTER_YAML
 
 elif [ $CREATE_ERROR -eq 1 ]; then
 echo "there was an error"
