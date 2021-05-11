@@ -4,7 +4,7 @@ type:
   version: v1alpha1
 fullName:
   managementClusterName: "seti-labs" #test3
-  name: csg
+  name: gitops-2
   provisionerName: "setilabs-dev-ns"
 meta:
   labels: null
